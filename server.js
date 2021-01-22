@@ -1,16 +1,16 @@
 
 var express = require('express');
 var http = require('http');
+var uuid = require('uuid');
 
 const Player = require('./player.js')
 const Vector2 = require('./vector2.js')
-const Bullet = require('./bullet.js')
+const Bullet = require('./bullet.js');
+const { exit } = require('process');
 
 var app = express();
 var server = http.createServer(app);
 var loopFrequency = 1 / 60; // in Hz
-
-var size = 600;
 
 var io = require('socket.io')(server,  {
   cors: {
@@ -30,7 +30,10 @@ io.on('connection', (socket) => {
 
     var pos = new Vector2(300,300)
     var color = colors[players.length % colors.length];
-    player = new Player(pos,color,name);
+    var id = uuid.v1();
+
+    player = new Player(pos,color,name,id);
+    socket.join(id);
 
     players.push(player);
   
@@ -58,12 +61,23 @@ io.on('connection', (socket) => {
 
   socket.on('shoot', () => {
     if(player != undefined){
-      var bullet = new Bullet(player.pos,player.angle);
+      var bullet = new Bullet(player);
       bullets.push(bullet);
     }
   });
 
 });
+
+function getPlayerById(id){
+
+  for(var i = 0; i < players.length; i++){
+    if(players[i].id === id){
+      return players[i]
+    }
+  }
+
+  return null;
+}
 
 setInterval(loop, loopFrequency * 1000);
 
@@ -118,6 +132,8 @@ function loop(){
   bullets_json = [];
   bullets_to_remove = [];
 
+  players_to_remove = [];
+
   bullets.forEach(function(bullet){
     if(bullet.isLivetimeOver()){
       bullets_to_remove.push(bullet);
@@ -126,18 +142,26 @@ function loop(){
       players.forEach(function(player){
         if(player.isHitByBullet(bullet)){
           bullets_to_remove.push(bullet);
+          if(player.dead){
+            playerKiller = getPlayerById(bullet.playerId);
+            if(player.id != playerKiller.id){
+              playerKiller.points += 1;
+            }
+
+            players_to_remove.push(player);
+            io.in(player.id).emit("dead",true);
+            
+
+          }
+
           updatePlayerInfo();
+
         }
       });
     }
 
     bullet.foreward(loopFrequency)
     bullets_json.push(bullet.getJson())
-
-  
-
-   
-
   });
 
   bullets_to_remove.forEach(function(bullet_to_remove){
@@ -145,6 +169,14 @@ function loop(){
     if (index > -1) {
       bullets.splice(index, 1);
     }
+  });
+
+  players_to_remove.forEach(function(player_to_remove){
+    const index = players.indexOf(player_to_remove);
+    if (index > -1) {
+      players.splice(index, 1);
+    }
+    updatePlayerInfo();
   });
 
   var position_json = {

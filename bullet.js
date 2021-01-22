@@ -4,11 +4,11 @@ const speed = 400;
 
 class Bullet{
 
-    constructor(pos,angle){
-        this.pos = pos;
+    constructor(player){
+        this.pos = player.pos;
 
-        this.dir = new Vector2(0,-1).rotate(angle);
-        this.angle = angle;
+        this.dir = new Vector2(0,-1).rotate(player.angle);
+        this.playerId = player.id;
         
         this.livetime = Date.now();
     }

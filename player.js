@@ -1,21 +1,28 @@
 const Vector2 = require('./vector2.js')
-const Bullet = require('./bullet.js')
 
 
 const speed = 200;
 const angle_speed = 200;
 const hit_radius = 10;
+const start_health = 3;
 
 class Player {
 
-    constructor(pos,color,name) {
+    constructor(pos,color,name,id) {
+
         this.pos = pos;
         this.angle = 0;
         this.keys = [];
+
         this.color = color;
         this.name = name;
-        this.health = 10;
+        this.id = id;
+
+        this.health = start_health;
+        this.points = 0;
+        
         this.dead = false;
+        
     }
 
     setPressedKeys(keys){
@@ -90,6 +97,7 @@ class Player {
             "c": this.color,
             "n": this.name,
             "h": this.health,
+            "p": this.points,
             "d": this.dead
         }
     }
